@@ -2,7 +2,8 @@ import { useCallback, useMemo, useState } from "react";
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCorners,
   useSensor,
   useSensors
@@ -45,8 +46,11 @@ function App() {
   const dragDisabled = searchQuery.trim().length > 0;
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: { distance: 6 }
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 180, tolerance: 8 }
     })
   );
 
