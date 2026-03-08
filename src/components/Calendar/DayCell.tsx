@@ -38,7 +38,7 @@ const DayCellComponent = ({
   const dayTasks = tasks ?? [];
 
   const { isOver, setNodeRef } = useDroppable({
-    id: `day-${day.date}`,
+    id: `Droppable-${day.date}`,
     data: {
       type: "day",
       date: day.date

@@ -17,12 +17,11 @@ export interface UpdateTaskPayload {
   order?: number;
 }
 
-export interface ReorderUpdate {
+export interface ReorderTaskItem {
   id: string;
-  date: string;
   order: number;
 }
 
 export interface ReorderPayload {
-  updates: ReorderUpdate[];
+  tasks: ReorderTaskItem[];
 }

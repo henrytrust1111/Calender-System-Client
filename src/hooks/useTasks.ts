@@ -20,8 +20,22 @@ interface UseTasksResult {
   createTask: (title: string, date: string) => Promise<void>;
   updateTask: (taskId: string, title: string) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
-  persistReorder: (nextTasks: Task[]) => Promise<void>;
+  persistReorder: (
+    taskId: string,
+    sourceDate: string,
+    destinationDate: string,
+    nextTasks: Task[]
+  ) => Promise<void>;
 }
+
+const buildReorderItemsForDate = (tasks: Task[], date: string) =>
+  tasks
+    .filter((task) => task.date === date)
+    .sort((a, b) => a.order - b.order)
+    .map((task, index) => ({
+      id: task.id,
+      order: index
+    }));
 
 export const useTasks = (currentMonth: Date): UseTasksResult => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -32,7 +46,6 @@ export const useTasks = (currentMonth: Date): UseTasksResult => {
 
   useEffect(() => {
     tasksRef.current = tasks;
-    console.log("Tasks in state:", tasks);
   }, [tasks]);
 
   const loadTasks = useCallback(async () => {
@@ -111,25 +124,29 @@ export const useTasks = (currentMonth: Date): UseTasksResult => {
     }
   }, []);
 
-  const persistReorder = useCallback(async (nextTasks: Task[]) => {
-    const normalized = normalizeTaskOrders(nextTasks);
-    const updates = normalized.map((task) => ({
-      id: task.id,
-      date: task.date,
-      order: task.order
-    }));
-    setSaving(true);
-    setError(null);
-    try {
-      await taskService.reorderTasks({ updates });
-      setTasks(normalized);
-    } catch {
-      setError("Unable to save task order.");
-      void loadTasks();
-    } finally {
-      setSaving(false);
-    }
-  }, [loadTasks]);
+  const persistReorder = useCallback(
+    async (taskId: string, sourceDate: string, destinationDate: string, nextTasks: Task[]) => {
+      setSaving(true);
+      setError(null);
+      try {
+        // Reorder endpoint is only for within-day ordering.
+        if (sourceDate === destinationDate) {
+          const items = buildReorderItemsForDate(nextTasks, destinationDate);
+          if (items.length > 0) {
+            await taskService.reorderTasks({ tasks: items });
+          }
+        } else {
+          // Moving across days is done via the task update endpoint.
+          await taskService.updateTask(taskId, { date: destinationDate });
+        }
+      } catch {
+        setError("Unable to save task order.");
+      } finally {
+        setSaving(false);
+      }
+    },
+    []
+  );
 
   return useMemo(
     () => ({
